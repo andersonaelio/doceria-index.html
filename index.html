@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<!-- ═══ MAPA DO ARQUIVO ═══
+  [CSS]    :root vars → base → hero → vitrine (esteira + modal) → especialidades → encomendas → horários/mapa → footer → zap flutuante → media queries
+  [HTML]   #hero → #vitrine → #especialidades → #encomendas → #horarios → footer → #zap-float → #modal
+  [JS]     DOCES (dados) → esteira (rAF scroll) → modal → ocasiões → helpers zap()
+════════════════════════ -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Doceria Dalpizzol · Barra da Lagoa, Floripa</title>
+<meta name="description" content="Doces artesanais feitos com carinho na Barra da Lagoa, Florianópolis. Bolos, tortas, cookies, bombons e encomendas especiais pelo WhatsApp.">
+<meta property="og:title" content="Doceria Dalpizzol · Barra da Lagoa, Floripa">
+<meta property="og:description" content="Doces artesanais feitos com carinho. Bolos, tortas, cookies, bombons e encomendas especiais pelo WhatsApp.">
+<meta property="og:image" content="assets/og.jpg">
+<meta property="og:type" content="website">
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Libre+Franklin:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --marrom:#2E1D12; --marrom2:#241610; --creme:#FBF6E0;
+  --caramelo:#D79D79; --caramelo-h:#c98a63; --cacau:#6C3E25; --oliva:#7C8A4E;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+html,body{margin:0;padding:0;background:var(--marrom)}
+body{font-family:'Libre Franklin',sans-serif;color:var(--creme);overflow-x:clip}
+img{display:block}
+a{color:var(--caramelo);text-decoration:none}
+a:hover{color:var(--caramelo-h)}
+h1,h2,h3{font-family:'Fraunces',serif;font-weight:500;margin:0}
+.btn{display:inline-block;background:var(--caramelo);color:var(--marrom);font-weight:600;border-radius:999px;transition:background .25s ease}
+.btn:hover{background:var(--caramelo-h);color:var(--marrom)}
+
+@keyframes scrollcue{0%,100%{transform:translateY(0);opacity:.7}50%{transform:translateY(8px);opacity:.3}}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+@keyframes cardin{from{opacity:0;transform:translate(-50%,-46%) scale(.96)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+
+/* ── HERO ── */
+.hero{position:relative;min-height:100vh;min-height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}
+.hero video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:blur(6px) brightness(.45) saturate(1.05);transform:scale(1.06)}
+.hero-veu{position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(46,29,18,.15) 30%,rgba(46,29,18,.75) 100%)}
+.hero-conteudo{position:relative;display:flex;flex-direction:column;align-items:center;gap:28px;padding:24px;animation:fadein 1.2s ease-out}
+.hero-conteudo img{width:min(420px,78vw);filter:drop-shadow(0 8px 40px rgba(0,0,0,.5))}
+.hero-conteudo p{margin:0;font-size:18px;letter-spacing:.04em;color:rgba(251,246,224,.85);text-align:center;max-width:46ch;text-wrap:pretty}
+.hero .btn{margin-top:8px;font-size:16px;padding:14px 32px}
+.scrollcue{position:absolute;bottom:28px;left:50%;margin-left:-1px;width:2px;height:36px;background:linear-gradient(rgba(251,246,224,0),rgba(251,246,224,.7));animation:scrollcue 2.2s ease-in-out infinite}
+
+/* ── VITRINE ── */
+.vitrine{position:relative;padding:110px 0 130px;background:var(--marrom)}
+.secao-cab{display:flex;flex-direction:column;align-items:center;gap:14px;padding:0 24px;text-align:center}
+.secao-cab h2{font-size:clamp(34px,5vw,48px);color:var(--creme)}
+.secao-cab p{margin:0;font-size:17px;color:rgba(251,246,224,.65);max-width:52ch;text-wrap:pretty}
+.esteira-wrap{margin-top:64px;overflow-x:auto;overflow-y:hidden;transition:opacity .5s ease,filter .5s ease;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.esteira-wrap::-webkit-scrollbar{display:none}
+.esteira-wrap.apagada{opacity:.25;filter:blur(3px)}
+.esteira{display:flex;gap:28px;width:max-content;padding:10px 24px}
+.doce-card{margin:0;width:300px;flex:none;cursor:pointer;display:flex;flex-direction:column;gap:14px;transition:transform .35s ease;-webkit-tap-highlight-color:transparent}
+.doce-card:hover{transform:translateY(-8px)}
+.doce-foto{width:300px;height:340px;border-radius:14px;overflow:hidden;background:var(--marrom2);box-shadow:0 18px 40px rgba(0,0,0,.45)}
+.doce-foto img{width:100%;height:100%;object-fit:cover}
+.doce-card figcaption{display:flex;flex-direction:column;gap:3px;padding:0 4px}
+.doce-nome{font-family:'Fraunces',serif;font-size:21px;color:var(--creme)}
+.doce-tag{font-size:14px;color:var(--caramelo);letter-spacing:.03em}
+
+/* ── MODAL DO DOCE ── */
+.modal-veu{position:fixed;inset:0;z-index:60;background:rgba(46,29,18,.55);animation:fadein .3s ease}
+.modal{position:fixed;z-index:61;top:50%;left:50%;transform:translate(-50%,-50%);width:min(1040px,94vw);max-height:90vh;max-height:90svh;display:flex;background:var(--marrom2);border-radius:18px;overflow:hidden;box-shadow:0 40px 120px rgba(0,0,0,.6);animation:cardin .45s cubic-bezier(.22,1,.36,1)}
+.modal-foto{flex:1.4;min-height:0;min-width:0}
+.modal-foto img{width:100%;height:100%;object-fit:cover}
+.modal-info{flex:1;display:flex;flex-direction:column;justify-content:center;gap:16px;padding:clamp(24px,4vw,48px)}
+.modal-info .tag{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--oliva);font-weight:600}
+.modal-info h3{font-size:clamp(28px,3.4vw,40px);color:var(--creme);text-wrap:pretty}
+.modal-info p{margin:0;font-size:16px;line-height:1.65;color:rgba(251,246,224,.75);text-wrap:pretty}
+.modal-info .btn{margin-top:10px;align-self:flex-start;font-size:15px;padding:13px 28px}
+.modal-fechar{position:absolute;top:14px;right:14px;width:40px;height:40px;border:none;border-radius:999px;background:rgba(251,246,224,.12);color:var(--creme);font-size:18px;cursor:pointer;line-height:1;transition:background .2s ease}
+.modal-fechar:hover{background:rgba(251,246,224,.25)}
+[hidden]{display:none!important}
+
+/* ── ESPECIALIDADES ── */
+.especialidades{background:var(--creme);color:var(--marrom);padding:110px 24px 120px}
+.especialidades-inner{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:56px}
+.especialidades-cab{display:flex;flex-direction:column;gap:14px;max-width:60ch}
+.especialidades-cab h2{font-size:clamp(34px,5vw,48px);color:var(--marrom)}
+.especialidades-cab p{margin:0;font-size:17px;line-height:1.6;color:var(--cacau);text-wrap:pretty}
+.categoria{display:flex;flex-direction:column;gap:24px}
+.categoria-cab{display:flex;align-items:baseline;gap:16px;border-bottom:1px solid rgba(124,138,78,.35);padding-bottom:12px}
+.categoria-cab h3{font-size:26px;color:var(--cacau)}
+.categoria-cab span{font-size:14px;color:var(--oliva)}
+.categoria-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:24px}
+.item{margin:0;display:flex;flex-direction:column;gap:12px}
+.item-foto{aspect-ratio:1;border-radius:12px;overflow:hidden;background:#efe6c8}
+.item-foto img{width:100%;height:100%;object-fit:cover;transition:transform .5s ease}
+.item:hover .item-foto img{transform:scale(1.04)}
+.item figcaption{display:flex;flex-direction:column;gap:4px}
+.item-nome{font-family:'Fraunces',serif;font-size:20px;color:var(--marrom)}
+.item-desc{font-size:14.5px;line-height:1.55;color:rgba(108,62,37,.85);text-wrap:pretty}
+
+/* ── ENCOMENDAS ── */
+.encomendas{background:var(--marrom);color:var(--creme);padding:110px 24px}
+.encomendas-inner{max-width:760px;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:22px;text-align:center}
+.encomendas h2{font-size:clamp(34px,5vw,48px)}
+.encomendas>.encomendas-inner>p{margin:0;font-size:17px;line-height:1.6;color:rgba(251,246,224,.7);max-width:52ch;text-wrap:pretty}
+.ocasioes{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:10px}
+.ocasiao{border:1.5px solid rgba(215,157,121,.55);background:transparent;color:var(--creme);font-family:'Libre Franklin',sans-serif;font-size:15px;font-weight:500;padding:11px 22px;border-radius:999px;cursor:pointer;transition:all .25s ease}
+.ocasiao:hover{border-color:var(--caramelo);background:rgba(215,157,121,.15)}
+.ocasiao.ativa{background:var(--caramelo);color:var(--marrom);border-color:var(--caramelo)}
+.encomendas .btn{margin-top:22px;font-size:17px;padding:16px 40px;box-shadow:0 14px 40px rgba(215,157,121,.25)}
+.ocasiao-hint{font-size:14px;color:rgba(251,246,224,.5)}
+
+/* ── HORÁRIOS + MAPA ── */
+.horarios{background:var(--creme);color:var(--marrom);padding:100px 24px}
+.horarios-inner{max-width:1080px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:56px;align-items:start}
+.horarios h2{font-size:clamp(30px,4vw,40px)}
+.horarios-col{display:flex;flex-direction:column;gap:26px}
+.horarios-lista{display:flex;flex-direction:column;font-size:16.5px}
+.horarios-linha{display:flex;justify-content:space-between;gap:24px;padding:14px 0;border-bottom:1px solid rgba(124,138,78,.3)}
+.horarios-linha:last-child{border-bottom:none}
+.horarios-linha .dia{font-weight:600;color:var(--cacau)}
+.fechado{color:var(--oliva)}
+.endereco{margin:0;font-size:16px;color:var(--cacau)}
+.mapa-col{display:flex;flex-direction:column;gap:16px}
+.mapa{border-radius:14px;overflow:hidden;box-shadow:0 16px 40px rgba(46,29,18,.15);aspect-ratio:4/3}
+.mapa iframe{width:100%;height:100%;border:0;display:block}
+
+/* ── RODAPÉ ── */
+footer{background:var(--marrom);color:var(--creme);padding:80px 24px 48px}
+.footer-inner{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:26px;text-align:center}
+.footer-inner img{width:170px;filter:drop-shadow(0 4px 20px rgba(0,0,0,.4))}
+.footer-links{display:flex;flex-wrap:wrap;justify-content:center;gap:26px;font-size:15.5px}
+.footer-nota{font-size:13.5px;color:rgba(251,246,224,.45)}
+
+/* ── WHATSAPP FLUTUANTE ── */
+.zap-float{position:fixed;z-index:70;right:22px;bottom:22px;width:58px;height:58px;border-radius:999px;background:var(--oliva);display:flex;align-items:center;justify-content:center;box-shadow:0 12px 32px rgba(0,0,0,.35);transition:transform .25s ease}
+.zap-float:hover{transform:scale(1.08)}
+
+/* ── MOBILE ── */
+@media (max-width:719px){
+  .vitrine{padding:80px 0 96px}
+  .esteira-wrap{margin-top:44px}
+  .doce-card{width:240px}
+  .doce-foto{width:240px;height:280px}
+  .modal{flex-direction:column;overflow-y:auto}
+  .modal-foto{flex:none;height:42vh}
+  .modal-info{justify-content:flex-start}
+  .especialidades{padding:80px 20px 90px}
+  .encomendas{padding:80px 20px}
+  .horarios{padding:76px 20px}
+  footer{padding:64px 20px 40px}
+}
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<header class="hero">
+  <video src="assets/hero.mp4" autoplay muted loop playsinline></video>
+  <div class="hero-veu"></div>
+  <div class="hero-conteudo">
+    <img src="assets/logo.webp" alt="Doceria Dalpizzol">
+    <p>Doces artesanais feitos com carinho, na Barra da Lagoa — Floripa.</p>
+    <a href="#vitrine" class="btn">Ver a vitrine</a>
+  </div>
+  <div class="scrollcue"></div>
+</header>
+
+<!-- VITRINE -->
+<section id="vitrine" class="vitrine">
+  <div class="secao-cab">
+    <h2>Conheça nossos doces</h2>
+    <p>A vitrine gira devagar. Viu um que é a sua cara? Toca nele.</p>
+  </div>
+  <div class="esteira-wrap" id="esteiraWrap">
+    <div class="esteira" id="esteira"></div>
+  </div>
+</section>
+
+<!-- ESPECIALIDADES -->
+<section class="especialidades" id="especialidades">
+  <div class="especialidades-inner">
+    <div class="especialidades-cab">
+      <h2>Especialidades da casa</h2>
+      <p>Tudo o que preparamos por aqui. Encomendas pelo WhatsApp — e se bater dúvida, é só chamar.</p>
+    </div>
+
+    <div class="categoria">
+      <div class="categoria-cab"><h3>Bolos</h3><span>fatias e inteiros</span></div>
+      <div class="categoria-grid">
+        <figure class="item"><div class="item-foto"><img src="assets/bolo-vulcao.webp" alt="Bolo vulcão" loading="lazy"></div><figcaption><span class="item-nome">Bolo vulcão</span><span class="item-desc">Massa fofinha com calda cremosa escorrendo pelas bordas.</span></figcaption></figure>
+        <figure class="item"><div class="item-foto"><img src="assets/bolo-vulcao-fatia.webp" alt="Fatia de bolo vulcão" loading="lazy"></div><figcaption><span class="item-nome">Bolo vulcão — a fatia</span><span class="item-desc">Porque uma foto só não dava conta. Fatia generosa, calda em dobro.</span></figcaption></figure>
+        <figure class="item"><div class="item-foto"><img src="assets/bento-cake.webp" alt="Bento cake com docinhos" loading="lazy"></div><figcaption><span class="item-nome">Bento cake</span><span class="item-desc">Bolinho personalizado com docinhos, feito sob encomenda.</span></figcaption></figure>
+      </div>
+    </div>
+
+    <div class="categoria">
+      <div class="categoria-cab"><h3>Tortas</h3><span>geladas e cremosas</span></div>
+      <div class="categoria-grid">
+        <figure class="item"><div class="item-foto"><img src="assets/torta-frutas.webp" alt="Torta mousse de frutas vermelhas" loading="lazy"></div><figcaption><span class="item-nome">Mousse de frutas vermelhas</span><span class="item-desc">Leve, com o azedinho certo das frutas.</span></figcaption></figure>
+        <figure class="item"><div class="item-foto"><img src="assets/torta-coco.webp" alt="Torta mousse de coco com amêndoas" loading="lazy"></div><figcaption><span class="item-nome">Mousse de coco com amêndoas</span><span class="item-desc">Cremosa, com lascas de coco e crocância de amêndoas.</span></figcaption></figure>
+      </div>
+    </div>
+
+    <div class="categoria">
+      <div class="categoria-cab"><h3>Cookies</h3><span>assados no dia</span></div>
+      <div class="categoria-grid">
+        <figure class="item"><div class="item-foto"><img src="assets/cookies.webp" alt="Cookies recheados" loading="lazy"></div><figcaption><span class="item-nome">Cookies recheados</span><span class="item-desc">Tradicional, duplo chocolate e recheado — sempre com muita gota.</span></figcaption></figure>
+      </div>
+    </div>
+
+    <div class="categoria">
+      <div class="categoria-cab"><h3>Bombons e docinhos</h3><span>de um em um ou na caixa</span></div>
+      <div class="categoria-grid">
+        <figure class="item"><div class="item-foto"><img src="assets/bombons-flor.webp" alt="Bombons de flor" loading="lazy"></div><figcaption><span class="item-nome">Bombons de flor</span><span class="item-desc">Chocolate, ninho e morango em formato de flor.</span></figcaption></figure>
+        <figure class="item"><div class="item-foto"><img src="assets/caixa-bombons.webp" alt="Caixa de bombons com laço" loading="lazy"></div><figcaption><span class="item-nome">Caixa de bombons</span><span class="item-desc">Com laço e tudo — pronta pra presentear.</span></figcaption></figure>
+        <figure class="item"><div class="item-foto"><img src="assets/pao-de-mel.webp" alt="Pão de mel" loading="lazy"></div><figcaption><span class="item-nome">Pão de mel</span><span class="item-desc">Chocolate meio amargo com doce de leite.</span></figcaption></figure>
+      </div>
+    </div>
+
+    <div class="categoria">
+      <div class="categoria-cab"><h3>Taças e especiais</h3><span>edições que vêm e voltam</span></div>
+      <div class="categoria-grid">
+        <figure class="item"><div class="item-foto"><img src="assets/bombom-taca.webp" alt="Bombom na taça" loading="lazy"></div><figcaption><span class="item-nome">Bombom na taça</span><span class="item-desc">Brigadeiro, creme de ninho e morangos em camadas.</span></figcaption></figure>
+        <figure class="item"><div class="item-foto"><img src="assets/chocotone-copinho.webp" alt="Chocotone no copinho" loading="lazy"></div><figcaption><span class="item-nome">Chocotone no copinho</span><span class="item-desc">Edição de fim de ano: chocotone com creme, de colher.</span></figcaption></figure>
+        <figure class="item"><div class="item-foto"><img src="assets/ovo-recheado.webp" alt="Ovo de Páscoa recheado" loading="lazy"></div><figcaption><span class="item-nome">Ovo recheado</span><span class="item-desc">Na Páscoa: casca grossa e recheio até a borda.</span></figcaption></figure>
+        <figure class="item"><div class="item-foto"><img src="assets/lata-coracao.webp" alt="Lata coração de brigadeiros" loading="lazy"></div><figcaption><span class="item-nome">Lata coração</span><span class="item-desc">Brigadeiros com coraçõezinhos, na lata de guardar.</span></figcaption></figure>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ENCOMENDAS -->
+<section class="encomendas" id="encomendas">
+  <div class="encomendas-inner">
+    <h2>Vamos criar algo para o seu momento</h2>
+    <p>Conta pra gente qual é a ocasião — a mensagem já vai prontinha no WhatsApp.</p>
+    <div class="ocasioes" id="ocasioes"></div>
+    <a href="#" class="btn" id="btnEncomenda" target="_blank" rel="noopener">Encomendar no WhatsApp</a>
+    <span class="ocasiao-hint" id="ocasiaoHint">Escolha uma ocasião ou chame direto</span>
+  </div>
+</section>
+
+<!-- HORÁRIOS + MAPA -->
+<section class="horarios" id="horarios">
+  <div class="horarios-inner">
+    <div class="horarios-col">
+      <h2>Horários</h2>
+      <div class="horarios-lista">
+        <div class="horarios-linha"><span class="dia">Terça a Sábado</span><span>10h às 18h30</span></div>
+        <div class="horarios-linha"><span class="dia">Domingo</span><span>15h às 18h</span></div>
+        <div class="horarios-linha"><span class="dia">Segunda</span><span class="fechado">Fechado</span></div>
+      </div>
+      <p class="endereco">📍 R. Altamiro Barcelos Dutra, 1334 · Barra da Lagoa · Florianópolis, SC</p>
+    </div>
+    <div class="mapa-col">
+      <h2>Onde estamos</h2>
+      <div class="mapa">
+        <iframe src="https://www.google.com/maps?q=R.+Altamiro+Barcelos+Dutra,+1334+-+Barra+da+Lagoa,+Florian%C3%B3polis+-+SC,+88061-308&output=embed" loading="lazy" title="Mapa — Barra da Lagoa, Florianópolis"></iframe>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- RODAPÉ -->
+<footer>
+  <div class="footer-inner">
+    <img src="assets/logo.webp" alt="Doceria Dalpizzol" loading="lazy">
+    <div class="footer-links">
+      <a href="#" id="zapFooter" target="_blank" rel="noopener">WhatsApp · 48 99133-8766</a>
+      <a href="https://instagram.com/doceriadalpizzol" target="_blank" rel="noopener">@doceriadalpizzol</a>
+    </div>
+    <span class="footer-nota">Doceria Dalpizzol · Barra da Lagoa, Florianópolis · Feito com carinho.</span>
+  </div>
+</footer>
+
+<!-- WHATSAPP FLUTUANTE -->
+<a href="#" id="zapFloat" class="zap-float" target="_blank" rel="noopener" aria-label="Falar no WhatsApp">
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="#FBF6E0" aria-hidden="true"><path d="M12 2a9.9 9.9 0 0 0-8.6 14.9L2 22l5.3-1.4A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3.1.8.8-3-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1-.2.2-.6.8-.8 1-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-2-1.2 7.4 7.4 0 0 1-1.4-1.7c-.1-.2 0-.4.1-.5l.4-.5c.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5l-.8-1.9c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.2.3-.9.9-.9 2.2s1 2.5 1.1 2.7c.1.2 1.9 3 4.7 4.2.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.6-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.2-.2-.4-.3Z"/></svg>
+</a>
+
+<!-- MODAL -->
+<div id="modalVeu" class="modal-veu" hidden></div>
+<div id="modal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="modalNome">
+  <div class="modal-foto"><img id="modalImg" src="" alt=""></div>
+  <div class="modal-info">
+    <span class="tag" id="modalTag"></span>
+    <h3 id="modalNome"></h3>
+    <p id="modalDesc"></p>
+    <a href="#" class="btn" id="modalZap" target="_blank" rel="noopener">Quero esse · WhatsApp</a>
+  </div>
+  <button class="modal-fechar" id="modalFechar" aria-label="Fechar">✕</button>
+</div>
+
+<script>
+// ── DADOS ──
+const ZAP = '5548991338766';
+const zap = msg => 'https://wa.me/' + ZAP + '?text=' + encodeURIComponent(msg);
+
+const DOCES = [
+  { nome: 'Cookies recheados', tag: 'Cookies', img: 'assets/cookies.webp', desc: 'Casquinha dourada por fora, macio por dentro — tem de chocolate, duplo chocolate e recheado que derrete na mordida.' },
+  { nome: 'Bombom na taça', tag: 'Taças', img: 'assets/bombom-taca.webp', desc: 'Camadas de brigadeiro, creme de ninho e morangos fresquinhos. É o nosso queridinho pra dividir (ou não).' },
+  { nome: 'Bolo vulcão', tag: 'Bolos', img: 'assets/bolo-vulcao.webp', desc: 'Massa fofinha coberta com aquela calda cremosa que escorre pelas bordas. Sabor de tarde na casa da vó.' },
+  { nome: 'Bento cake + docinhos', tag: 'Sob encomenda', img: 'assets/bento-cake.webp', desc: 'Bolinho personalizado com a mensagem que você quiser, acompanhado de brigadeiros. Perfeito pra surpreender.', encomenda: true },
+  { nome: 'Bombons de flor', tag: 'Bombons', img: 'assets/bombons-flor.webp', desc: 'Bombons em formato de flor com recheio cremoso — chocolate, ninho e morango. Pequenos detalhes que viram presente.' },
+  { nome: 'Pão de mel', tag: 'Clássicos', img: 'assets/pao-de-mel.webp', desc: 'Coberto com chocolate meio amargo e recheado de doce de leite. Um clássico feito do jeito certo.' },
+  { nome: 'Torta mousse de frutas vermelhas', tag: 'Tortas', img: 'assets/torta-frutas.webp', desc: 'Refrescante e delicada: mousse leve com o equilíbrio certo entre o doce e o azedinho das frutas.' },
+  { nome: 'Torta mousse de coco', tag: 'Tortas', img: 'assets/torta-coco.webp', desc: 'Leve e cremosa, com amêndoas e lascas de coco. Suavidade que desmancha na colher.' },
+  { nome: 'Caixa presente', tag: 'Sob encomenda', img: 'assets/caixa-presente.webp', desc: 'Bolo + brigadeiros numa caixa linda de dar. Montamos pra aniversários, datas especiais ou só porque sim.', encomenda: true },
+  { nome: 'Lata coração de brigadeiros', tag: 'Sob encomenda', img: 'assets/lata-coracao.webp', desc: 'Doze brigadeiros com coraçõezinhos numa lata que fica de lembrança. Declaração de amor em forma de doce.', encomenda: true },
+];
+
+const msgDoce = d => 'Oi! Vi o site e fiquei com vontade do(a) ' + d.nome + ' 🤎 ' + (d.encomenda ? 'Como funciona a encomenda?' : 'Tem disponível?');
+
+// ── ESTEIRA (auto-scroll + arrasto manual) ──
+const esteira = document.getElementById('esteira');
+const wrap = document.getElementById('esteiraWrap');
+
+[...DOCES, ...DOCES].forEach((d, i) => {
+  const fig = document.createElement('figure');
+  fig.className = 'doce-card';
+  fig.setAttribute('role', 'button');
+  fig.tabIndex = 0;
+  fig.innerHTML =
+    '<div class="doce-foto"><img src="' + d.img + '" alt="' + d.nome + '"' + (i > 3 ? ' loading="lazy"' : '') + '></div>' +
+    '<figcaption><span class="doce-nome">' + d.nome + '</span><span class="doce-tag">' + d.tag + '</span></figcaption>';
+  fig.addEventListener('click', () => abrirModal(d));
+  fig.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrirModal(d); } });
+  esteira.appendChild(fig);
+});
+
+let pausada = false, retomarTimer = null, meio = 0;
+const medirMeio = () => { meio = esteira.scrollWidth / 2; };
+window.addEventListener('load', medirMeio);
+window.addEventListener('resize', medirMeio);
+medirMeio();
+
+const VEL = 0.55; // px por frame (~33px/s)
+function rodarEsteira() {
+  if (!pausada && !modalAberto && meio > 0) {
+    wrap.scrollLeft += VEL;
+    if (wrap.scrollLeft >= meio) wrap.scrollLeft -= meio;
+  }
+  requestAnimationFrame(rodarEsteira);
+}
+requestAnimationFrame(rodarEsteira);
+
+function pausar() { pausada = true; clearTimeout(retomarTimer); }
+function retomar(delay) { clearTimeout(retomarTimer); retomarTimer = setTimeout(() => { pausada = false; }, delay); }
+
+wrap.addEventListener('mouseenter', pausar);
+wrap.addEventListener('mouseleave', () => retomar(300));
+wrap.addEventListener('touchstart', pausar, { passive: true });
+wrap.addEventListener('touchend', () => retomar(2500), { passive: true });
+wrap.addEventListener('scroll', () => { // loop contínuo também no arrasto manual
+  if (meio > 0) {
+    if (wrap.scrollLeft >= meio) wrap.scrollLeft -= meio;
+    else if (wrap.scrollLeft <= 0) wrap.scrollLeft += meio;
+  }
+}, { passive: true });
+
+// ── MODAL ──
+const modal = document.getElementById('modal');
+const modalVeu = document.getElementById('modalVeu');
+let modalAberto = false;
+
+function abrirModal(d) {
+  document.getElementById('modalImg').src = d.img;
+  document.getElementById('modalImg').alt = d.nome;
+  document.getElementById('modalTag').textContent = d.tag;
+  document.getElementById('modalNome').textContent = d.nome;
+  document.getElementById('modalDesc').textContent = d.desc;
+  document.getElementById('modalZap').href = zap(msgDoce(d));
+  modal.hidden = false; modalVeu.hidden = false;
+  wrap.classList.add('apagada');
+  modalAberto = true;
+  document.body.style.overflow = 'hidden';
+}
+function fecharModal() {
+  modal.hidden = true; modalVeu.hidden = true;
+  wrap.classList.remove('apagada');
+  modalAberto = false;
+  document.body.style.overflow = '';
+}
+modalVeu.addEventListener('click', fecharModal);
+document.getElementById('modalFechar').addEventListener('click', fecharModal);
+window.addEventListener('keydown', e => { if (e.key === 'Escape') fecharModal(); });
+
+// ── OCASIÕES ──
+const OCASIOES = ['Aniversário', 'Casamento', 'Chá de bebê', 'Dia das Mães', 'Natal', 'Só porque sim'];
+let ocasiaoAtiva = null;
+const ocasioesEl = document.getElementById('ocasioes');
+const btnEncomenda = document.getElementById('btnEncomenda');
+const ocasiaoHint = document.getElementById('ocasiaoHint');
+
+function atualizarEncomenda() {
+  const msg = ocasiaoAtiva
+    ? 'Oi! Quero encomendar um doce para: ' + ocasiaoAtiva + ' 🤎 Podem me ajudar?'
+    : 'Oi! Quero fazer uma encomenda especial 🤎';
+  btnEncomenda.href = zap(msg);
+  ocasiaoHint.textContent = ocasiaoAtiva ? 'Mensagem pronta para: ' + ocasiaoAtiva : 'Escolha uma ocasião ou chame direto';
+}
+OCASIOES.forEach(nome => {
+  const b = document.createElement('button');
+  b.className = 'ocasiao';
+  b.type = 'button';
+  b.textContent = nome;
+  b.addEventListener('click', () => {
+    ocasiaoAtiva = ocasiaoAtiva === nome ? null : nome;
+    [...ocasioesEl.children].forEach(el => el.classList.toggle('ativa', el.textContent === ocasiaoAtiva));
+    atualizarEncomenda();
+  });
+  ocasioesEl.appendChild(b);
+});
+atualizarEncomenda();
+
+// ── LINKS DIRETOS ──
+const zapDireto = zap('Oi! Vim pelo site da doceria 🤎');
+document.getElementById('zapFloat').href = zapDireto;
+document.getElementById('zapFooter').href = zapDireto;
+</script>
+</body>
+</html>
