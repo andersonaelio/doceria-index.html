@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Painel · Doceria Dalpizzol</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Libre+Franklin:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--marrom:#2E1D12;--marrom2:#241610;--creme:#FBF6E0;--caramelo:#D79D79;--caramelo-h:#c98a63;--cacau:#6C3E25;--oliva:#7C8A4E;--ease:cubic-bezier(.22,1,.36,1)}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Libre Franklin',sans-serif;background:var(--marrom);color:var(--creme);min-height:100vh;min-height:100svh;padding:24px}
+h1,h2{font-family:'Fraunces',serif;font-weight:500;margin:0}
+.wrap{max-width:640px;margin:0 auto}
+
+/* login */
+#login{min-height:80vh;min-height:80svh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;text-align:center}
+#login h1{font-size:26px}
+#pin{display:flex;gap:10px}
+#pin input{width:52px;height:64px;text-align:center;font-size:26px;font-family:'Libre Franklin',sans-serif;background:var(--marrom2);border:1.5px solid rgba(215,157,121,.3);border-radius:10px;color:var(--creme)}
+#pin input:focus{outline:none;border-color:var(--caramelo)}
+.erro{color:#e08a6a;font-size:14.5px;min-height:20px}
+.btn{background:var(--caramelo);color:var(--marrom);font-weight:600;border:none;border-radius:999px;padding:14px 32px;font-size:16px;cursor:pointer;transition:background .2s ease}
+.btn:hover{background:var(--caramelo-h)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* painel */
+#painel{display:none}
+.painel-cab{margin-bottom:28px}
+.painel-cab p{color:rgba(251,246,224,.6);font-size:15px;margin:8px 0 0}
+section.bloco{background:var(--marrom2);border-radius:16px;padding:24px;margin-bottom:20px}
+.bloco h2{font-size:19px;margin-bottom:6px}
+.bloco .sub{font-size:14px;color:rgba(251,246,224,.55);margin-bottom:18px}
+.grid-doces{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+@media(max-width:480px){.grid-doces{grid-template-columns:1fr}}
+.doce-opcao{display:flex;align-items:center;gap:12px;background:var(--marrom);border-radius:10px;padding:10px;cursor:pointer;border:1.5px solid transparent;transition:border-color .2s ease}
+.doce-opcao.marcado{border-color:var(--caramelo)}
+.doce-opcao.travado{opacity:.35;cursor:not-allowed}
+.doce-opcao img{width:44px;height:44px;border-radius:6px;object-fit:cover;flex:none}
+.doce-opcao span{font-size:14.5px}
+.doce-opcao input{margin-left:auto;width:18px;height:18px;accent-color:var(--caramelo)}
+.contador{font-size:13.5px;color:var(--caramelo);margin-top:12px}
+.select-foto{display:flex;align-items:center;gap:12px;background:var(--marrom);border-radius:10px;padding:12px;margin-bottom:10px}
+.select-foto img{width:52px;height:52px;border-radius:8px;object-fit:cover;flex:none}
+.select-foto select{flex:1;background:transparent;border:none;color:var(--creme);font-family:inherit;font-size:15px}
+.preview{display:flex;align-items:center;gap:14px;margin-top:14px}
+.preview img{width:80px;height:80px;border-radius:10px;object-fit:cover;border:1.5px solid rgba(215,157,121,.4)}
+input[type=file]{color:rgba(251,246,224,.7);font-size:13.5px}
+.status{font-size:14px;margin-top:12px;min-height:18px}
+.status.ok{color:#9fbf7d}
+.status.erro{color:#e08a6a}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div id="login">
+    <h1>Painel da Doceria</h1>
+    <p style="color:rgba(251,246,224,.6);margin:0">Digite o código de 5 dígitos</p>
+    <div id="pin">
+      <input maxlength="1" inputmode="numeric" pattern="[0-9]">
+      <input maxlength="1" inputmode="numeric" pattern="[0-9]">
+      <input maxlength="1" inputmode="numeric" pattern="[0-9]">
+      <input maxlength="1" inputmode="numeric" pattern="[0-9]">
+      <input maxlength="1" inputmode="numeric" pattern="[0-9]">
+    </div>
+    <span class="erro" id="loginErro"></span>
+    <button class="btn" id="btnEntrar">Entrar</button>
+  </div>
+
+  <div id="painel">
+    <div class="painel-cab">
+      <h1>Painel da Doceria</h1>
+      <p>Escolha a promoção da semana e, se quiser, troque a foto de algum doce.</p>
+    </div>
+
+    <section class="bloco">
+      <h2>Promoção da semana</h2>
+      <div class="sub">Escolha até 3 doces. O desconto de 10% é calculado sozinho, você não precisa digitar preço.</div>
+      <div class="grid-doces" id="gridPromo"></div>
+      <div class="contador" id="contadorPromo">0 de 3 escolhidos</div>
+      <div style="margin-top:18px"><button class="btn" id="btnSalvarPromo">Salvar promoção</button></div>
+      <div class="status" id="statusPromo"></div>
+    </section>
+
+    <section class="bloco">
+      <h2>Trocar foto de um doce</h2>
+      <div class="sub">A foto nova substitui a atual — não cria doce novo, só troca a imagem.</div>
+      <div class="select-foto">
+        <img id="fotoAtualPreview" src="" alt="">
+        <select id="selectDoce"></select>
+      </div>
+      <input type="file" id="inputFoto" accept="image/*">
+      <div class="preview" id="previewNova" style="display:none">
+        <img id="imgPreviewNova" src="" alt="">
+        <span style="font-size:13.5px;color:rgba(251,246,224,.6)">Prévia da foto nova</span>
+      </div>
+      <div style="margin-top:18px"><button class="btn" id="btnSalvarFoto" disabled>Salvar foto</button></div>
+      <div class="status" id="statusFoto"></div>
+    </section>
+  </div>
+</div>
+
+<script>
+// mesma lista de doces do site principal — manter os dois em sincronia se um doce for adicionado/removido
+const DOCES = [
+  { id: 'cookies', nome: 'Cookies recheados', img: '../assets/cookies.webp' },
+  { id: 'bombom-taca', nome: 'Bombom na taça', img: '../assets/bombom-taca.webp' },
+  { id: 'bolo-vulcao', nome: 'Bolo vulcão', img: '../assets/bolo-vulcao.webp' },
+  { id: 'bento-cake', nome: 'Bento cake + docinhos', img: '../assets/bento-cake.webp' },
+  { id: 'bombons-flor', nome: 'Bombons de flor', img: '../assets/bombons-flor.webp' },
+  { id: 'pao-de-mel', nome: 'Pão de mel', img: '../assets/pao-de-mel.webp' },
+  { id: 'torta-frutas', nome: 'Torta mousse de frutas vermelhas', img: '../assets/torta-frutas.webp' },
+  { id: 'torta-coco', nome: 'Torta mousse de coco', img: '../assets/torta-coco.webp' },
+  { id: 'caixa-presente', nome: 'Caixa presente', img: '../assets/caixa-presente.webp' },
+  { id: 'lata-coracao', nome: 'Lata coração de brigadeiros', img: '../assets/lata-coracao.webp' },
+];
+const LIMITE = 3;
+let codigoSalvo = '';
+
+// ── LOGIN (PIN de 5 dígitos) ──
+const inputs = [...document.querySelectorAll('#pin input')];
+inputs.forEach((inp, i) => {
+  inp.addEventListener('input', () => {
+    inp.value = inp.value.replace(/\D/g, '');
+    if (inp.value && inputs[i + 1]) inputs[i + 1].focus();
+  });
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Backspace' && !inp.value && inputs[i - 1]) inputs[i - 1].focus();
+  });
+});
+
+document.getElementById('btnEntrar').addEventListener('click', async () => {
+  const codigo = inputs.map(i => i.value).join('');
+  const erroEl = document.getElementById('loginErro');
+  if (codigo.length !== 5) { erroEl.textContent = 'digite os 5 números'; return; }
+  const btn = document.getElementById('btnEntrar');
+  btn.disabled = true; erroEl.textContent = 'verificando...';
+  const resp = await chamarApi('validar-codigo', {}, codigo);
+  btn.disabled = false;
+  if (resp.ok) {
+    erroEl.textContent = '';
+    codigoSalvo = codigo;
+    document.getElementById('login').style.display = 'none';
+    document.getElementById('painel').style.display = 'block';
+    montarPainel();
+  } else {
+    erroEl.textContent = resp.erro || 'código incorreto';
+  }
+});
+
+async function chamarApi(acao, dados, codigo) {
+  try {
+    const resp = await fetch('/api/painel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ codigo: codigo || codigoSalvo, acao, ...dados }),
+    });
+    return await resp.json();
+  } catch (e) {
+    return { ok: false, erro: 'falha de conexão' };
+  }
+}
+
+// ── BLOCO PROMOÇÃO ──
+let selecionados = [];
+function montarPainel() {
+  const grid = document.getElementById('gridPromo');
+  grid.innerHTML = DOCES.map(d =>
+    '<label class="doce-opcao" data-id="' + d.id + '">' +
+      '<img src="' + d.img + '" alt="">' +
+      '<span>' + d.nome + '</span>' +
+      '<input type="checkbox" value="' + d.id + '">' +
+    '</label>'
+  ).join('');
+  grid.querySelectorAll('.doce-opcao').forEach(el => {
+    const input = el.querySelector('input');
+    input.addEventListener('change', () => {
+      const id = el.dataset.id;
+      if (input.checked) {
+        if (selecionados.length >= LIMITE) { input.checked = false; return; }
+        selecionados.push(id);
+      } else {
+        selecionados = selecionados.filter(x => x !== id);
+      }
+      atualizarSelecao();
+    });
+  });
+
+  const select = document.getElementById('selectDoce');
+  select.innerHTML = DOCES.map(d => '<option value="' + d.id + '">' + d.nome + '</option>').join('');
+  select.addEventListener('change', atualizarFotoAtual);
+  atualizarFotoAtual();
+}
+
+function atualizarSelecao() {
+  document.querySelectorAll('.doce-opcao').forEach(el => {
+    const id = el.dataset.id;
+    const marcado = selecionados.includes(id);
+    el.classList.toggle('marcado', marcado);
+    el.classList.toggle('travado', !marcado && selecionados.length >= LIMITE);
+  });
+  document.getElementById('contadorPromo').textContent = selecionados.length + ' de ' + LIMITE + ' escolhidos';
+}
+
+document.getElementById('btnSalvarPromo').addEventListener('click', async () => {
+  const status = document.getElementById('statusPromo');
+  status.className = 'status'; status.textContent = 'salvando...';
+  const resp = await chamarApi('salvar-promocao', { ids: selecionados });
+  if (resp.ok) {
+    status.className = 'status ok';
+    status.textContent = 'salvo — o site atualiza em ~1 minuto.';
+  } else {
+    status.className = 'status erro';
+    status.textContent = resp.erro || 'algo deu errado';
+  }
+});
+
+// ── BLOCO FOTO ──
+function atualizarFotoAtual() {
+  const id = document.getElementById('selectDoce').value;
+  const d = DOCES.find(x => x.id === id);
+  document.getElementById('fotoAtualPreview').src = d.img;
+  document.getElementById('previewNova').style.display = 'none';
+  document.getElementById('inputFoto').value = '';
+  document.getElementById('btnSalvarFoto').disabled = true;
+}
+
+let novaImagemBase64 = null;
+
+document.getElementById('inputFoto').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const status = document.getElementById('statusFoto');
+  status.className = 'status'; status.textContent = 'preparando imagem...';
+  try {
+    novaImagemBase64 = await redimensionarParaWebp(file, 1200);
+    document.getElementById('imgPreviewNova').src = 'data:image/webp;base64,' + novaImagemBase64;
+    document.getElementById('previewNova').style.display = 'flex';
+    document.getElementById('btnSalvarFoto').disabled = false;
+    status.textContent = '';
+  } catch (err) {
+    status.className = 'status erro';
+    status.textContent = 'não consegui processar essa imagem — tente outra foto ou outro navegador.';
+  }
+});
+
+function redimensionarParaWebp(file, maxLado) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const leitor = new FileReader();
+    leitor.onload = () => { img.src = leitor.result; };
+    leitor.onerror = reject;
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > height && width > maxLado) { height = height * (maxLado / width); width = maxLado; }
+      else if (height > maxLado) { width = width * (maxLado / height); height = maxLado; }
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(width); canvas.height = Math.round(height);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/webp', 0.82);
+      if (!dataUrl.startsWith('data:image/webp')) { reject(new Error('navegador sem suporte a WebP')); return; }
+      resolve(dataUrl.split(',')[1]);
+    };
+    img.onerror = reject;
+    leitor.readAsDataURL(file);
+  });
+}
+
+document.getElementById('btnSalvarFoto').addEventListener('click', async () => {
+  const status = document.getElementById('statusFoto');
+  const id = document.getElementById('selectDoce').value;
+  if (!novaImagemBase64) return;
+  status.className = 'status'; status.textContent = 'salvando...';
+  const resp = await chamarApi('trocar-foto', { doceId: id, imagemBase64: novaImagemBase64 });
+  if (resp.ok) {
+    status.className = 'status ok';
+    status.textContent = 'foto trocada — o site atualiza em ~1 minuto.';
+    document.getElementById('btnSalvarFoto').disabled = true;
+  } else {
+    status.className = 'status erro';
+    status.textContent = resp.erro || 'algo deu errado';
+  }
+});
+</script>
+</body>
+</html>

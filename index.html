@@ -2,9 +2,10 @@
 <html lang="pt-BR">
 <head>
 <!-- ═══ MAPA DO ARQUIVO ═══
-  [CSS]    :root vars (+ --ease, sombras, [data-reveal]) → base → hero (parallax) → vitrine (esteira + modal, preço) → especialidades (elevada c/ sombra, preço) → encomendas → horários/mapa → footer → zap flutuante → media queries
-  [HTML]   #hero → #vitrine → #especialidades → #encomendas → #horarios → footer → #zap-float → #modal
-  [JS]     DOCES (dados + preços ◀ fictícios, TROCAR antes de publicar) → esteira (rAF scroll) → modal → parallax hero → IntersectionObserver reveal → ocasiões → helpers zap()
+  [CSS]    :root vars (+ --ease, sombras, [data-reveal]) → base → hero (parallax) → promo semana → vitrine (esteira + modal, preço) → especialidades (elevada c/ sombra, preço) → encomendas → horários/mapa → footer → zap flutuante → media queries
+  [HTML]   #hero → #promoSemana → #vitrine → #especialidades → #encomendas → #horarios → footer → #zap-float → #modal
+  [JS]     IIFE async (busca dados/versao.json p/ cv() cache-bust) → DOCES (dados + id + preços ◀ fictícios, TROCAR antes de publicar) → esteira (rAF scroll) → modal → promo semana (lê dados/promocoes.json) → parallax hero → IntersectionObserver reveal → ocasiões → helpers zap()
+  [PAINEL] /painel (login PIN 5 dígitos) + /api/painel.js (Vercel function, grava no GitHub via Contents API) — ver /painel/LEIA-ME.md
 ════════════════════════ -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -57,6 +58,21 @@ h1,h2,h3{font-family:'Fraunces',serif;font-weight:500;margin:0}
 .hero-conteudo p{margin:0;font-size:18px;letter-spacing:.04em;color:rgba(251,246,224,.85);text-align:center;max-width:46ch;text-wrap:pretty}
 .hero .btn{margin-top:8px;font-size:16px;padding:14px 32px}
 .scrollcue{position:absolute;bottom:28px;left:50%;margin-left:-1px;width:2px;height:36px;background:linear-gradient(rgba(251,246,224,0),rgba(251,246,224,.7));animation:scrollcue 2.2s ease-in-out infinite}
+
+/* ── PROMOÇÃO DA SEMANA ── */
+.promo{background:var(--marrom2);padding:64px 24px;display:none}
+.promo.tem-promo{display:block}
+.promo-inner{max-width:1080px;margin:0 auto;display:flex;flex-direction:column;gap:32px}
+.promo-cab{display:flex;flex-direction:column;gap:6px;text-align:center}
+.promo-cab span{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--caramelo);font-weight:600}
+.promo-cab h2{font-size:clamp(26px,4vw,34px);color:var(--creme)}
+.promo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.promo-card{display:flex;flex-direction:column;gap:10px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.promo-foto{position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;box-shadow:var(--sombra-perto),var(--sombra-longe)}
+.promo-foto img{width:100%;height:100%;object-fit:cover}
+.promo-selo{position:absolute;top:10px;left:10px;background:var(--caramelo);color:var(--marrom);font-size:13px;font-weight:700;letter-spacing:.03em;padding:5px 11px;border-radius:999px}
+.promo-nome{font-family:'Fraunces',serif;font-size:17px;color:var(--creme)}
+@media (max-width:719px){.promo-grid{grid-template-columns:1fr;gap:16px}}
 
 /* ── VITRINE ── */
 .vitrine{position:relative;padding:110px 0 130px;background:var(--marrom)}
@@ -191,6 +207,14 @@ footer{background:var(--marrom);color:var(--creme);padding:80px 24px 48px}
   <div class="scrollcue"></div>
 </header>
 
+<!-- PROMOÇÃO DA SEMANA -->
+<section class="promo" id="promoSemana">
+  <div class="promo-inner">
+    <div class="promo-cab"><span>Só essa semana</span><h2>Promoção da semana</h2></div>
+    <div class="promo-grid" id="promoGrid"></div>
+  </div>
+</section>
+
 <!-- VITRINE -->
 <section id="vitrine" class="vitrine">
   <div class="secao-cab" data-reveal>
@@ -319,22 +343,31 @@ footer{background:var(--marrom);color:var(--creme);padding:80px 24px 48px}
 </div>
 
 <script>
+(async function(){
+// versão de cache: sobe toda vez que o painel salva algo (promoção ou foto nova) — evita foto trocada continuar em cache no celular do cliente
+let VERSAO_CACHE = '';
+try {
+  const rv = await fetch('dados/versao.json');
+  if (rv.ok) { const jv = await rv.json(); VERSAO_CACHE = jv.v || ''; }
+} catch (e) {}
+const cv = src => VERSAO_CACHE ? src + '?v=' + VERSAO_CACHE : src;
+
 // ── DADOS ──
 const ZAP = '5548991338766';
 const zap = msg => 'https://wa.me/' + ZAP + '?text=' + encodeURIComponent(msg);
 
 // preços abaixo são fictícios ◀ TROCAR pelos valores reais da Doceria Dalpizzol antes de publicar
 const DOCES = [
-  { nome: 'Cookies recheados', tag: 'Cookies', img: 'assets/cookies.webp', desc: 'Casquinha dourada por fora, macio por dentro — tem de chocolate, duplo chocolate e recheado que derrete na mordida.', de: 14.90, por: 11.90 },
-  { nome: 'Bombom na taça', tag: 'Taças', img: 'assets/bombom-taca.webp', desc: 'Camadas de brigadeiro, creme de ninho e morangos fresquinhos. É o nosso queridinho pra dividir (ou não).', de: 22.00, por: 18.50 },
-  { nome: 'Bolo vulcão', tag: 'Bolos', img: 'assets/bolo-vulcao.webp', desc: 'Massa fofinha coberta com aquela calda cremosa que escorre pelas bordas. Sabor de tarde na casa da vó.', de: 68.00, por: 58.00 },
-  { nome: 'Bento cake + docinhos', tag: 'Sob encomenda', img: 'assets/bento-cake.webp', desc: 'Bolinho personalizado com a mensagem que você quiser, acompanhado de brigadeiros. Perfeito pra surpreender.', encomenda: true, de: 145.00, por: 129.00 },
-  { nome: 'Bombons de flor', tag: 'Bombons', img: 'assets/bombons-flor.webp', desc: 'Bombons em formato de flor com recheio cremoso — chocolate, ninho e morango. Pequenos detalhes que viram presente.', de: 6.50, por: 5.50 },
-  { nome: 'Pão de mel', tag: 'Clássicos', img: 'assets/pao-de-mel.webp', desc: 'Coberto com chocolate meio amargo e recheado de doce de leite. Um clássico feito do jeito certo.', de: 9.00, por: 7.50 },
-  { nome: 'Torta mousse de frutas vermelhas', tag: 'Tortas', img: 'assets/torta-frutas.webp', desc: 'Refrescante e delicada: mousse leve com o equilíbrio certo entre o doce e o azedinho das frutas.', de: 78.00, por: 65.00 },
-  { nome: 'Torta mousse de coco', tag: 'Tortas', img: 'assets/torta-coco.webp', desc: 'Leve e cremosa, com amêndoas e lascas de coco. Suavidade que desmancha na colher.', de: 78.00, por: 65.00 },
-  { nome: 'Caixa presente', tag: 'Sob encomenda', img: 'assets/caixa-presente.webp', desc: 'Bolo + brigadeiros numa caixa linda de dar. Montamos pra aniversários, datas especiais ou só porque sim.', encomenda: true, de: 95.00, por: 82.00 },
-  { nome: 'Lata coração de brigadeiros', tag: 'Sob encomenda', img: 'assets/lata-coracao.webp', desc: 'Doze brigadeiros com coraçõezinhos numa lata que fica de lembrança. Declaração de amor em forma de doce.', encomenda: true, de: 58.00, por: 49.00 },
+  { id: 'cookies', nome: 'Cookies recheados', tag: 'Cookies', img: 'assets/cookies.webp', desc: 'Casquinha dourada por fora, macio por dentro — tem de chocolate, duplo chocolate e recheado que derrete na mordida.', de: 14.90, por: 11.90 },
+  { id: 'bombom-taca', nome: 'Bombom na taça', tag: 'Taças', img: 'assets/bombom-taca.webp', desc: 'Camadas de brigadeiro, creme de ninho e morangos fresquinhos. É o nosso queridinho pra dividir (ou não).', de: 22.00, por: 18.50 },
+  { id: 'bolo-vulcao', nome: 'Bolo vulcão', tag: 'Bolos', img: 'assets/bolo-vulcao.webp', desc: 'Massa fofinha coberta com aquela calda cremosa que escorre pelas bordas. Sabor de tarde na casa da vó.', de: 68.00, por: 58.00 },
+  { id: 'bento-cake', nome: 'Bento cake + docinhos', tag: 'Sob encomenda', img: 'assets/bento-cake.webp', desc: 'Bolinho personalizado com a mensagem que você quiser, acompanhado de brigadeiros. Perfeito pra surpreender.', encomenda: true, de: 145.00, por: 129.00 },
+  { id: 'bombons-flor', nome: 'Bombons de flor', tag: 'Bombons', img: 'assets/bombons-flor.webp', desc: 'Bombons em formato de flor com recheio cremoso — chocolate, ninho e morango. Pequenos detalhes que viram presente.', de: 6.50, por: 5.50 },
+  { id: 'pao-de-mel', nome: 'Pão de mel', tag: 'Clássicos', img: 'assets/pao-de-mel.webp', desc: 'Coberto com chocolate meio amargo e recheado de doce de leite. Um clássico feito do jeito certo.', de: 9.00, por: 7.50 },
+  { id: 'torta-frutas', nome: 'Torta mousse de frutas vermelhas', tag: 'Tortas', img: 'assets/torta-frutas.webp', desc: 'Refrescante e delicada: mousse leve com o equilíbrio certo entre o doce e o azedinho das frutas.', de: 78.00, por: 65.00 },
+  { id: 'torta-coco', nome: 'Torta mousse de coco', tag: 'Tortas', img: 'assets/torta-coco.webp', desc: 'Leve e cremosa, com amêndoas e lascas de coco. Suavidade que desmancha na colher.', de: 78.00, por: 65.00 },
+  { id: 'caixa-presente', nome: 'Caixa presente', tag: 'Sob encomenda', img: 'assets/caixa-presente.webp', desc: 'Bolo + brigadeiros numa caixa linda de dar. Montamos pra aniversários, datas especiais ou só porque sim.', encomenda: true, de: 95.00, por: 82.00 },
+  { id: 'lata-coracao', nome: 'Lata coração de brigadeiros', tag: 'Sob encomenda', img: 'assets/lata-coracao.webp', desc: 'Doze brigadeiros com coraçõezinhos numa lata que fica de lembrança. Declaração de amor em forma de doce.', encomenda: true, de: 58.00, por: 49.00 },
 ];
 const brl = n => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -350,7 +383,7 @@ const wrap = document.getElementById('esteiraWrap');
   fig.setAttribute('role', 'button');
   fig.tabIndex = 0;
   fig.innerHTML =
-    '<div class="doce-foto"><img src="' + d.img + '" alt="' + d.nome + '"' + (i > 3 ? ' loading="lazy"' : '') + '></div>' +
+    '<div class="doce-foto"><img src="' + cv(d.img) + '" alt="' + d.nome + '"' + (i > 3 ? ' loading="lazy"' : '') + '></div>' +
     '<figcaption><span class="doce-nome">' + d.nome + '</span><span class="doce-tag">' + d.tag + '</span>' +
     '<span class="doce-preco"><span class="de">' + brl(d.de) + '</span><span class="por">' + brl(d.por) + '</span></span></figcaption>';
   fig.addEventListener('click', () => abrirModal(d));
@@ -394,7 +427,7 @@ const modalVeu = document.getElementById('modalVeu');
 let modalAberto = false;
 
 function abrirModal(d) {
-  document.getElementById('modalImg').src = d.img;
+  document.getElementById('modalImg').src = cv(d.img);
   document.getElementById('modalImg').alt = d.nome;
   document.getElementById('modalTag').textContent = d.tag;
   document.getElementById('modalNome').textContent = d.nome;
@@ -444,6 +477,32 @@ OCASIOES.forEach(nome => {
 });
 atualizarEncomenda();
 
+// ── PROMOÇÃO DA SEMANA (lida de dados/promocoes.json, escrita pelo painel) ──
+fetch('dados/promocoes.json' + (VERSAO_CACHE ? '?v=' + VERSAO_CACHE : ''))
+  .then(r => r.ok ? r.json() : null)
+  .then(dados => {
+    const ids = (dados && Array.isArray(dados.semana)) ? dados.semana.slice(0, 3) : [];
+    const escolhidos = ids.map(id => DOCES.find(d => d.id === id)).filter(Boolean);
+    if (!escolhidos.length) return; // seção fica oculta (display:none no CSS) sem promoção ativa
+    const grid = document.getElementById('promoGrid');
+    grid.innerHTML = escolhidos.map(d => {
+      const promo = d.por * 0.9;
+      return '<figure class="promo-card" data-id="' + d.id + '">' +
+        '<div class="promo-foto"><img src="' + cv(d.img) + '" alt="' + d.nome + '" loading="lazy"><span class="promo-selo">-10%</span></div>' +
+        '<figcaption><span class="promo-nome">' + d.nome + '</span>' +
+        '<span class="doce-preco"><span class="de">' + brl(d.por) + '</span><span class="por">' + brl(promo) + '</span></span></figcaption>' +
+        '</figure>';
+    }).join('');
+    document.getElementById('promoSemana').classList.add('tem-promo');
+    grid.querySelectorAll('.promo-card').forEach(el => {
+      el.addEventListener('click', () => {
+        const d = escolhidos.find(x => x.id === el.dataset.id);
+        if (d) abrirModal(d);
+      });
+    });
+  })
+  .catch(() => {}); // sem arquivo ainda = sem promoção, site segue normal
+
 // ── PROFUNDIDADE: parallax do hero + reveal no scroll ──
 const reduzMovimento = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const heroMedia = document.getElementById('heroMedia');
@@ -472,6 +531,12 @@ document.querySelectorAll('[data-reveal]').forEach(el => observer.observe(el));
 const zapDireto = zap('Oi! Vim pelo site da doceria 🤎');
 document.getElementById('zapFloat').href = zapDireto;
 document.getElementById('zapFooter').href = zapDireto;
+
+// aplica a versão de cache nas fotos editáveis pelo painel que já estão fixas no HTML (Especialidades)
+document.querySelectorAll('#especialidades img[src^="assets/"]').forEach(img => {
+  img.src = cv(img.getAttribute('src'));
+});
+})();
 </script>
 </body>
 </html>
