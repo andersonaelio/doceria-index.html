@@ -113,6 +113,31 @@ export default async function handler(req, res) {
       return;
     }
 
+    if (acao === 'salvar-precos') {
+      const precos = req.body.precos;
+      if (!precos || typeof precos !== 'object') {
+        res.status(400).json({ ok: false, erro: 'preços ausentes' });
+        return;
+      }
+      const limpo = {};
+      for (const id of Object.keys(precos)) {
+        if (!IDS_VALIDOS.includes(id)) continue; // ignora silenciosamente ids desconhecidos
+        const { de, por } = precos[id] || {};
+        const deN = Number(de), porN = Number(por);
+        if (!Number.isFinite(deN) || !Number.isFinite(porN) || deN < 0 || porN < 0) {
+          res.status(400).json({ ok: false, erro: 'preço inválido em ' + id });
+          return;
+        }
+        limpo[id] = { de: deN, por: porN };
+      }
+      const conteudo = JSON.stringify(limpo, null, 2);
+      const base64 = Buffer.from(conteudo, 'utf-8').toString('base64');
+      await commitar('dados/precos.json', base64, 'painel: atualizar preços');
+      await atualizarVersao();
+      res.status(200).json({ ok: true });
+      return;
+    }
+
     if (acao === 'salvar-promocao') {
       const ids = Array.isArray(req.body.ids) ? req.body.ids.slice(0, LIMITE_PROMOCAO) : [];
       const invalidos = ids.filter(id => !IDS_VALIDOS.includes(id));

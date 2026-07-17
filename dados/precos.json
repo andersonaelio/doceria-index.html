@@ -1,0 +1,42 @@
+{
+  "cookies": {
+    "de": 14.9,
+    "por": 11.9
+  },
+  "bombom-taca": {
+    "de": 22.0,
+    "por": 18.5
+  },
+  "bolo-vulcao": {
+    "de": 68.0,
+    "por": 58.0
+  },
+  "bento-cake": {
+    "de": 145.0,
+    "por": 129.0
+  },
+  "bombons-flor": {
+    "de": 6.5,
+    "por": 5.5
+  },
+  "pao-de-mel": {
+    "de": 9.0,
+    "por": 7.5
+  },
+  "torta-frutas": {
+    "de": 78.0,
+    "por": 65.0
+  },
+  "torta-coco": {
+    "de": 78.0,
+    "por": 65.0
+  },
+  "caixa-presente": {
+    "de": 95.0,
+    "por": 82.0
+  },
+  "lata-coracao": {
+    "de": 58.0,
+    "por": 49.0
+  }
+}
