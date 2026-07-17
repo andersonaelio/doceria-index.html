@@ -43,8 +43,14 @@ section.bloco{background:var(--marrom2);border-radius:16px;padding:24px;margin-b
 .contador{font-size:13.5px;color:var(--caramelo);margin-top:12px}
 .select-foto{display:flex;align-items:center;gap:12px;background:var(--marrom);border-radius:10px;padding:12px;margin-bottom:10px}
 .select-foto img{width:52px;height:52px;border-radius:8px;object-fit:cover;flex:none}
-.select-foto select{flex:1;background:var(--marrom);color:var(--creme);font-family:inherit;font-size:15px;border:1px solid rgba(215,157,121,.3);border-radius:6px;padding:8px}
-.select-foto select option{background:var(--marrom);color:var(--creme)}
+.dropdown-doce{position:relative;flex:1;min-width:0}
+.dropdown-btn{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--marrom2);color:var(--creme);font-family:inherit;font-size:15px;border:1px solid rgba(215,157,121,.3);border-radius:6px;padding:10px 12px;cursor:pointer;text-align:left}
+.dropdown-btn:focus{outline:none;border-color:var(--caramelo)}
+.dropdown-btn svg{flex:none;transition:transform .2s ease}
+.dropdown-btn.aberto svg{transform:rotate(180deg)}
+.dropdown-lista{position:absolute;z-index:20;top:calc(100% + 6px);left:0;right:0;max-height:260px;overflow-y:auto;background:var(--marrom2);border:1px solid rgba(215,157,121,.3);border-radius:10px;box-shadow:0 20px 40px rgba(0,0,0,.5)}
+.dropdown-item{padding:11px 14px;font-size:14.5px;color:var(--creme);cursor:pointer}
+.dropdown-item:hover,.dropdown-item.ativo{background:var(--caramelo);color:var(--marrom)}
 .preview{display:flex;align-items:center;gap:14px;margin-top:14px}
 .preview img{width:80px;height:80px;border-radius:10px;object-fit:cover;border:1.5px solid rgba(215,157,121,.4)}
 input[type=file]{color:rgba(251,246,224,.7);font-size:13.5px}
@@ -105,7 +111,13 @@ input[type=file]{color:rgba(251,246,224,.7);font-size:13.5px}
       <div class="sub">A foto nova substitui a atual — não cria doce novo, só troca a imagem.</div>
       <div class="select-foto">
         <img id="fotoAtualPreview" src="" alt="">
-        <select id="selectDoce"></select>
+        <div class="dropdown-doce" id="dropdownDoce">
+          <button type="button" class="dropdown-btn" id="dropdownBtn">
+            <span id="dropdownBtnTexto">Cookies recheados</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <div class="dropdown-lista" id="dropdownLista" hidden></div>
+        </div>
       </div>
       <input type="file" id="inputFoto" accept="image/*">
       <div class="preview" id="previewNova" style="display:none">
@@ -246,9 +258,62 @@ function montarPainel() {
     });
   });
 
-  const select = document.getElementById('selectDoce');
-  select.innerHTML = DOCES.map(d => '<option value="' + d.id + '">' + d.nome + '</option>').join('');
-  select.addEventListener('change', atualizarFotoAtual);
+  carregarPromoAtual();
+  montarDropdownDoce();
+}
+
+async function carregarPromoAtual() {
+  const status = document.getElementById('statusPromo');
+  status.className = 'status'; status.textContent = 'carregando promoção salva...';
+  try {
+    const r = await fetch('../dados/promocoes.json?v=' + Date.now());
+    if (r.ok) {
+      const dados = await r.json();
+      const ids = Array.isArray(dados.semana) ? dados.semana : [];
+      selecionados = ids.filter(id => DOCES.some(d => d.id === id));
+      document.querySelectorAll('.doce-opcao input').forEach(input => {
+        input.checked = selecionados.includes(input.value);
+      });
+      atualizarSelecao();
+      status.textContent = '';
+    } else {
+      status.textContent = '';
+    }
+  } catch (e) {
+    status.className = 'status erro';
+    status.textContent = 'não consegui carregar a promoção atual — o que estiver marcado abaixo pode não refletir o que já está salvo.';
+  }
+}
+
+// ── DROPDOWN CUSTOMIZADO (substitui <select> nativo — o menu do sistema ignora nosso CSS escuro) ──
+let doceSelecionadoId = DOCES[0].id;
+function montarDropdownDoce() {
+  const lista = document.getElementById('dropdownLista');
+  const btn = document.getElementById('dropdownBtn');
+  lista.innerHTML = DOCES.map(d =>
+    '<div class="dropdown-item' + (d.id === doceSelecionadoId ? ' ativo' : '') + '" data-id="' + d.id + '">' + d.nome + '</div>'
+  ).join('');
+
+  btn.addEventListener('click', () => {
+    const abrindo = lista.hidden;
+    lista.hidden = !abrindo;
+    btn.classList.toggle('aberto', abrindo);
+  });
+  document.addEventListener('click', e => {
+    if (!document.getElementById('dropdownDoce').contains(e.target)) {
+      lista.hidden = true;
+      btn.classList.remove('aberto');
+    }
+  });
+  lista.querySelectorAll('.dropdown-item').forEach(item => {
+    item.addEventListener('click', () => {
+      doceSelecionadoId = item.dataset.id;
+      lista.querySelectorAll('.dropdown-item').forEach(i => i.classList.toggle('ativo', i === item));
+      lista.hidden = true;
+      btn.classList.remove('aberto');
+      atualizarFotoAtual();
+    });
+  });
   atualizarFotoAtual();
 }
 
@@ -277,8 +342,8 @@ document.getElementById('btnSalvarPromo').addEventListener('click', async () => 
 
 // ── BLOCO FOTO ──
 function atualizarFotoAtual() {
-  const id = document.getElementById('selectDoce').value;
-  const d = DOCES.find(x => x.id === id);
+  const d = DOCES.find(x => x.id === doceSelecionadoId);
+  document.getElementById('dropdownBtnTexto').textContent = d.nome;
   document.getElementById('fotoAtualPreview').src = d.img;
   document.getElementById('previewNova').style.display = 'none';
   document.getElementById('inputFoto').value = '';
@@ -328,7 +393,7 @@ function redimensionarParaWebp(file, maxLado) {
 
 document.getElementById('btnSalvarFoto').addEventListener('click', async () => {
   const status = document.getElementById('statusFoto');
-  const id = document.getElementById('selectDoce').value;
+  const id = doceSelecionadoId;
   if (!novaImagemBase64) return;
   status.className = 'status'; status.textContent = 'salvando...';
   const resp = await chamarApi('trocar-foto', { doceId: id, imagemBase64: novaImagemBase64 });
