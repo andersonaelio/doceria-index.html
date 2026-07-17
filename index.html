@@ -2,9 +2,9 @@
 <html lang="pt-BR">
 <head>
 <!-- ═══ MAPA DO ARQUIVO ═══
-  [CSS]    :root vars → base → hero → vitrine (esteira + modal) → especialidades → encomendas → horários/mapa → footer → zap flutuante → media queries
+  [CSS]    :root vars (+ --ease, sombras, [data-reveal]) → base → hero (parallax) → vitrine (esteira + modal, preço) → especialidades (elevada c/ sombra, preço) → encomendas → horários/mapa → footer → zap flutuante → media queries
   [HTML]   #hero → #vitrine → #especialidades → #encomendas → #horarios → footer → #zap-float → #modal
-  [JS]     DOCES (dados) → esteira (rAF scroll) → modal → ocasiões → helpers zap()
+  [JS]     DOCES (dados + preços ◀ fictícios, TROCAR antes de publicar) → esteira (rAF scroll) → modal → parallax hero → IntersectionObserver reveal → ocasiões → helpers zap()
 ════════════════════════ -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -22,9 +22,18 @@
 :root{
   --marrom:#2E1D12; --marrom2:#241610; --creme:#FBF6E0;
   --caramelo:#D79D79; --caramelo-h:#c98a63; --cacau:#6C3E25; --oliva:#7C8A4E;
+  --ease:cubic-bezier(.22,1,.36,1);
+  --sombra-perto:0 2px 6px rgba(0,0,0,.28);
+  --sombra-longe:0 26px 54px rgba(0,0,0,.4);
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  [data-reveal]{opacity:1!important;transform:none!important;transition:none!important}
+}
+[data-reveal]{opacity:0;transform:translateY(28px);transition:opacity .7s var(--ease),transform .7s var(--ease);transition-delay:var(--atraso,0s)}
+[data-reveal].em-vista{opacity:1;transform:translateY(0)}
 html,body{margin:0;padding:0;background:var(--marrom)}
 body{font-family:'Libre Franklin',sans-serif;color:var(--creme);overflow-x:clip}
 img{display:block}
@@ -40,7 +49,8 @@ h1,h2,h3{font-family:'Fraunces',serif;font-weight:500;margin:0}
 
 /* ── HERO ── */
 .hero{position:relative;min-height:100vh;min-height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}
-.hero video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:blur(6px) brightness(.45) saturate(1.05);transform:scale(1.06)}
+.hero-media{position:absolute;inset:-40px 0;will-change:transform}
+.hero-media video{width:100%;height:calc(100% + 80px);object-fit:cover;filter:blur(6px) brightness(.45) saturate(1.05);transform:scale(1.06)}
 .hero-veu{position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(46,29,18,.15) 30%,rgba(46,29,18,.75) 100%)}
 .hero-conteudo{position:relative;display:flex;flex-direction:column;align-items:center;gap:28px;padding:24px;animation:fadein 1.2s ease-out}
 .hero-conteudo img{width:min(420px,78vw);filter:drop-shadow(0 8px 40px rgba(0,0,0,.5))}
@@ -57,13 +67,17 @@ h1,h2,h3{font-family:'Fraunces',serif;font-weight:500;margin:0}
 .esteira-wrap::-webkit-scrollbar{display:none}
 .esteira-wrap.apagada{opacity:.25;filter:blur(3px)}
 .esteira{display:flex;gap:28px;width:max-content;padding:10px 24px}
-.doce-card{margin:0;width:300px;flex:none;cursor:pointer;display:flex;flex-direction:column;gap:14px;transition:transform .35s ease;-webkit-tap-highlight-color:transparent}
-.doce-card:hover{transform:translateY(-8px)}
-.doce-foto{width:300px;height:340px;border-radius:14px;overflow:hidden;background:var(--marrom2);box-shadow:0 18px 40px rgba(0,0,0,.45)}
+.doce-card{margin:0;width:300px;flex:none;cursor:pointer;display:flex;flex-direction:column;gap:14px;transition:transform .4s var(--ease);-webkit-tap-highlight-color:transparent}
+.doce-card:hover{transform:translateY(-10px) scale(1.015)}
+.doce-foto{width:300px;height:340px;border-radius:14px;overflow:hidden;background:var(--marrom2);box-shadow:var(--sombra-perto),var(--sombra-longe);transition:box-shadow .4s var(--ease)}
+.doce-card:hover .doce-foto{box-shadow:var(--sombra-perto),0 34px 70px rgba(0,0,0,.5)}
 .doce-foto img{width:100%;height:100%;object-fit:cover}
 .doce-card figcaption{display:flex;flex-direction:column;gap:3px;padding:0 4px}
 .doce-nome{font-family:'Fraunces',serif;font-size:21px;color:var(--creme)}
 .doce-tag{font-size:14px;color:var(--caramelo);letter-spacing:.03em}
+.doce-preco{font-size:14.5px;color:rgba(251,246,224,.75);margin-top:1px}
+.doce-preco .de{text-decoration:line-through;opacity:.55;margin-right:6px}
+.doce-preco .por{color:var(--caramelo);font-weight:600}
 
 /* ── MODAL DO DOCE ── */
 .modal-veu{position:fixed;inset:0;z-index:60;background:rgba(46,29,18,.55);animation:fadein .3s ease}
@@ -80,7 +94,14 @@ h1,h2,h3{font-family:'Fraunces',serif;font-weight:500;margin:0}
 [hidden]{display:none!important}
 
 /* ── ESPECIALIDADES ── */
-.especialidades{background:var(--creme);color:var(--marrom);padding:110px 24px 120px}
+.especialidades{position:relative;background:var(--creme);color:var(--marrom);padding:110px 24px 120px;margin-top:-48px;border-radius:32px 32px 0 0;box-shadow:0 -30px 60px rgba(0,0,0,.35)}
+.item{position:relative;transition:transform .4s var(--ease)}
+.item:hover{transform:translateY(-4px)}
+.item-foto{transition:box-shadow .4s var(--ease)}
+.item:hover .item-foto{box-shadow:0 20px 40px rgba(46,29,18,.22)}
+.item-preco{font-size:14.5px;margin-top:2px}
+.item-preco .de{text-decoration:line-through;color:rgba(108,62,37,.5);margin-right:6px}
+.item-preco .por{color:var(--cacau);font-weight:600}
 .especialidades-inner{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:56px}
 .especialidades-cab{display:flex;flex-direction:column;gap:14px;max-width:60ch}
 .especialidades-cab h2{font-size:clamp(34px,5vw,48px);color:var(--marrom)}
@@ -90,6 +111,10 @@ h1,h2,h3{font-family:'Fraunces',serif;font-weight:500;margin:0}
 .categoria-cab h3{font-size:26px;color:var(--cacau)}
 .categoria-cab span{font-size:14px;color:var(--oliva)}
 .categoria-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:24px}
+.categoria-grid>.item:nth-child(1){--atraso:0s}
+.categoria-grid>.item:nth-child(2){--atraso:.08s}
+.categoria-grid>.item:nth-child(3){--atraso:.16s}
+.categoria-grid>.item:nth-child(4){--atraso:.24s}
 .item{margin:0;display:flex;flex-direction:column;gap:12px}
 .item-foto{aspect-ratio:1;border-radius:12px;overflow:hidden;background:#efe6c8}
 .item-foto img{width:100%;height:100%;object-fit:cover;transition:transform .5s ease}
@@ -156,7 +181,7 @@ footer{background:var(--marrom);color:var(--creme);padding:80px 24px 48px}
 
 <!-- HERO -->
 <header class="hero">
-  <video src="assets/hero.mp4" autoplay muted loop playsinline></video>
+  <div class="hero-media" id="heroMedia"><video src="assets/hero.mp4" autoplay muted loop playsinline></video></div>
   <div class="hero-veu"></div>
   <div class="hero-conteudo">
     <img src="assets/logo.webp" alt="Doceria Dalpizzol">
@@ -168,7 +193,7 @@ footer{background:var(--marrom);color:var(--creme);padding:80px 24px 48px}
 
 <!-- VITRINE -->
 <section id="vitrine" class="vitrine">
-  <div class="secao-cab">
+  <div class="secao-cab" data-reveal>
     <h2>Conheça nossos doces</h2>
     <p>A vitrine gira devagar. Viu um que é a sua cara? Toca nele.</p>
   </div>
@@ -180,51 +205,51 @@ footer{background:var(--marrom);color:var(--creme);padding:80px 24px 48px}
 <!-- ESPECIALIDADES -->
 <section class="especialidades" id="especialidades">
   <div class="especialidades-inner">
-    <div class="especialidades-cab">
+    <div class="especialidades-cab" data-reveal>
       <h2>Especialidades da casa</h2>
       <p>Tudo o que preparamos por aqui. Encomendas pelo WhatsApp — e se bater dúvida, é só chamar.</p>
     </div>
 
     <div class="categoria">
-      <div class="categoria-cab"><h3>Bolos</h3><span>fatias e inteiros</span></div>
+      <div class="categoria-cab" data-reveal><h3>Bolos</h3><span>fatias e inteiros</span></div>
       <div class="categoria-grid">
-        <figure class="item"><div class="item-foto"><img src="assets/bolo-vulcao.webp" alt="Bolo vulcão" loading="lazy"></div><figcaption><span class="item-nome">Bolo vulcão</span><span class="item-desc">Massa fofinha com calda cremosa escorrendo pelas bordas.</span></figcaption></figure>
-        <figure class="item"><div class="item-foto"><img src="assets/bolo-vulcao-fatia.webp" alt="Fatia de bolo vulcão" loading="lazy"></div><figcaption><span class="item-nome">Bolo vulcão — a fatia</span><span class="item-desc">Porque uma foto só não dava conta. Fatia generosa, calda em dobro.</span></figcaption></figure>
-        <figure class="item"><div class="item-foto"><img src="assets/bento-cake.webp" alt="Bento cake com docinhos" loading="lazy"></div><figcaption><span class="item-nome">Bento cake</span><span class="item-desc">Bolinho personalizado com docinhos, feito sob encomenda.</span></figcaption></figure>
+        <figure class="item" data-reveal><div class="item-foto"><img src="assets/bolo-vulcao.webp" alt="Bolo vulcão" loading="lazy"></div><figcaption><span class="item-nome">Bolo vulcão</span><span class="item-desc">Massa fofinha com calda cremosa escorrendo pelas bordas.</span><span class="item-preco"><span class="de">R$ 68,00</span><span class="por">R$ 58,00</span></span></figcaption></figure>
+        <figure class="item" data-reveal><div class="item-foto"><img src="assets/bolo-vulcao-fatia.webp" alt="Fatia de bolo vulcão" loading="lazy"></div><figcaption><span class="item-nome">Bolo vulcão — a fatia</span><span class="item-desc">Porque uma foto só não dava conta. Fatia generosa, calda em dobro.</span><span class="item-preco"><span class="de">R$ 14,00</span><span class="por">R$ 12,00</span></span></figcaption></figure>
+        <figure class="item" data-reveal><div class="item-foto"><img src="assets/bento-cake.webp" alt="Bento cake com docinhos" loading="lazy"></div><figcaption><span class="item-nome">Bento cake</span><span class="item-desc">Bolinho personalizado com docinhos, feito sob encomenda.</span><span class="item-preco"><span class="de">R$ 145,00</span><span class="por">R$ 129,00</span></span></figcaption></figure>
       </div>
     </div>
 
     <div class="categoria">
-      <div class="categoria-cab"><h3>Tortas</h3><span>geladas e cremosas</span></div>
+      <div class="categoria-cab" data-reveal><h3>Tortas</h3><span>geladas e cremosas</span></div>
       <div class="categoria-grid">
-        <figure class="item"><div class="item-foto"><img src="assets/torta-frutas.webp" alt="Torta mousse de frutas vermelhas" loading="lazy"></div><figcaption><span class="item-nome">Mousse de frutas vermelhas</span><span class="item-desc">Leve, com o azedinho certo das frutas.</span></figcaption></figure>
-        <figure class="item"><div class="item-foto"><img src="assets/torta-coco.webp" alt="Torta mousse de coco com amêndoas" loading="lazy"></div><figcaption><span class="item-nome">Mousse de coco com amêndoas</span><span class="item-desc">Cremosa, com lascas de coco e crocância de amêndoas.</span></figcaption></figure>
+        <figure class="item" data-reveal><div class="item-foto"><img src="assets/torta-frutas.webp" alt="Torta mousse de frutas vermelhas" loading="lazy"></div><figcaption><span class="item-nome">Mousse de frutas vermelhas</span><span class="item-desc">Leve, com o azedinho certo das frutas.</span><span class="item-preco"><span class="de">R$ 78,00</span><span class="por">R$ 65,00</span></span></figcaption></figure>
+        <figure class="item" data-reveal><div class="item-foto"><img src="assets/torta-coco.webp" alt="Torta mousse de coco com amêndoas" loading="lazy"></div><figcaption><span class="item-nome">Mousse de coco com amêndoas</span><span class="item-desc">Cremosa, com lascas de coco e crocância de amêndoas.</span><span class="item-preco"><span class="de">R$ 78,00</span><span class="por">R$ 65,00</span></span></figcaption></figure>
       </div>
     </div>
 
     <div class="categoria">
-      <div class="categoria-cab"><h3>Cookies</h3><span>assados no dia</span></div>
+      <div class="categoria-cab" data-reveal><h3>Cookies</h3><span>assados no dia</span></div>
       <div class="categoria-grid">
-        <figure class="item"><div class="item-foto"><img src="assets/cookies.webp" alt="Cookies recheados" loading="lazy"></div><figcaption><span class="item-nome">Cookies recheados</span><span class="item-desc">Tradicional, duplo chocolate e recheado — sempre com muita gota.</span></figcaption></figure>
+        <figure class="item" data-reveal><div class="item-foto"><img src="assets/cookies.webp" alt="Cookies recheados" loading="lazy"></div><figcaption><span class="item-nome">Cookies recheados</span><span class="item-desc">Tradicional, duplo chocolate e recheado — sempre com muita gota.</span><span class="item-preco"><span class="de">R$ 14,90</span><span class="por">R$ 11,90</span></span></figcaption></figure>
       </div>
     </div>
 
     <div class="categoria">
-      <div class="categoria-cab"><h3>Bombons e docinhos</h3><span>de um em um ou na caixa</span></div>
+      <div class="categoria-cab" data-reveal><h3>Bombons e docinhos</h3><span>de um em um ou na caixa</span></div>
       <div class="categoria-grid">
-        <figure class="item"><div class="item-foto"><img src="assets/bombons-flor.webp" alt="Bombons de flor" loading="lazy"></div><figcaption><span class="item-nome">Bombons de flor</span><span class="item-desc">Chocolate, ninho e morango em formato de flor.</span></figcaption></figure>
-        <figure class="item"><div class="item-foto"><img src="assets/caixa-bombons.webp" alt="Caixa de bombons com laço" loading="lazy"></div><figcaption><span class="item-nome">Caixa de bombons</span><span class="item-desc">Com laço e tudo — pronta pra presentear.</span></figcaption></figure>
-        <figure class="item"><div class="item-foto"><img src="assets/pao-de-mel.webp" alt="Pão de mel" loading="lazy"></div><figcaption><span class="item-nome">Pão de mel</span><span class="item-desc">Chocolate meio amargo com doce de leite.</span></figcaption></figure>
+        <figure class="item" data-reveal><div class="item-foto"><img src="assets/bombons-flor.webp" alt="Bombons de flor" loading="lazy"></div><figcaption><span class="item-nome">Bombons de flor</span><span class="item-desc">Chocolate, ninho e morango em formato de flor.</span><span class="item-preco"><span class="de">R$ 6,50</span><span class="por">R$ 5,50</span></span></figcaption></figure>
+        <figure class="item" data-reveal><div class="item-foto"><img src="assets/caixa-bombons.webp" alt="Caixa de bombons com laço" loading="lazy"></div><figcaption><span class="item-nome">Caixa de bombons</span><span class="item-desc">Com laço e tudo — pronta pra presentear.</span><span class="item-preco"><span class="de">R$ 48,00</span><span class="por">R$ 42,00</span></span></figcaption></figure>
+        <figure class="item" data-reveal><div class="item-foto"><img src="assets/pao-de-mel.webp" alt="Pão de mel" loading="lazy"></div><figcaption><span class="item-nome">Pão de mel</span><span class="item-desc">Chocolate meio amargo com doce de leite.</span><span class="item-preco"><span class="de">R$ 9,00</span><span class="por">R$ 7,50</span></span></figcaption></figure>
       </div>
     </div>
 
     <div class="categoria">
-      <div class="categoria-cab"><h3>Taças e especiais</h3><span>edições que vêm e voltam</span></div>
+      <div class="categoria-cab" data-reveal><h3>Taças e especiais</h3><span>edições que vêm e voltam</span></div>
       <div class="categoria-grid">
-        <figure class="item"><div class="item-foto"><img src="assets/bombom-taca.webp" alt="Bombom na taça" loading="lazy"></div><figcaption><span class="item-nome">Bombom na taça</span><span class="item-desc">Brigadeiro, creme de ninho e morangos em camadas.</span></figcaption></figure>
-        <figure class="item"><div class="item-foto"><img src="assets/chocotone-copinho.webp" alt="Chocotone no copinho" loading="lazy"></div><figcaption><span class="item-nome">Chocotone no copinho</span><span class="item-desc">Edição de fim de ano: chocotone com creme, de colher.</span></figcaption></figure>
-        <figure class="item"><div class="item-foto"><img src="assets/ovo-recheado.webp" alt="Ovo de Páscoa recheado" loading="lazy"></div><figcaption><span class="item-nome">Ovo recheado</span><span class="item-desc">Na Páscoa: casca grossa e recheio até a borda.</span></figcaption></figure>
-        <figure class="item"><div class="item-foto"><img src="assets/lata-coracao.webp" alt="Lata coração de brigadeiros" loading="lazy"></div><figcaption><span class="item-nome">Lata coração</span><span class="item-desc">Brigadeiros com coraçõezinhos, na lata de guardar.</span></figcaption></figure>
+        <figure class="item" data-reveal><div class="item-foto"><img src="assets/bombom-taca.webp" alt="Bombom na taça" loading="lazy"></div><figcaption><span class="item-nome">Bombom na taça</span><span class="item-desc">Brigadeiro, creme de ninho e morangos em camadas.</span><span class="item-preco"><span class="de">R$ 22,00</span><span class="por">R$ 18,50</span></span></figcaption></figure>
+        <figure class="item" data-reveal><div class="item-foto"><img src="assets/chocotone-copinho.webp" alt="Chocotone no copinho" loading="lazy"></div><figcaption><span class="item-nome">Chocotone no copinho</span><span class="item-desc">Edição de fim de ano: chocotone com creme, de colher.</span><span class="item-preco"><span class="de">R$ 16,00</span><span class="por">R$ 13,90</span></span></figcaption></figure>
+        <figure class="item" data-reveal><div class="item-foto"><img src="assets/ovo-recheado.webp" alt="Ovo de Páscoa recheado" loading="lazy"></div><figcaption><span class="item-nome">Ovo recheado</span><span class="item-desc">Na Páscoa: casca grossa e recheio até a borda.</span><span class="item-preco"><span class="de">R$ 85,00</span><span class="por">R$ 74,00</span></span></figcaption></figure>
+        <figure class="item" data-reveal><div class="item-foto"><img src="assets/lata-coracao.webp" alt="Lata coração de brigadeiros" loading="lazy"></div><figcaption><span class="item-nome">Lata coração</span><span class="item-desc">Brigadeiros com coraçõezinhos, na lata de guardar.</span><span class="item-preco"><span class="de">R$ 58,00</span><span class="por">R$ 49,00</span></span></figcaption></figure>
       </div>
     </div>
   </div>
@@ -232,7 +257,7 @@ footer{background:var(--marrom);color:var(--creme);padding:80px 24px 48px}
 
 <!-- ENCOMENDAS -->
 <section class="encomendas" id="encomendas">
-  <div class="encomendas-inner">
+  <div class="encomendas-inner" data-reveal>
     <h2>Vamos criar algo para o seu momento</h2>
     <p>Conta pra gente qual é a ocasião — a mensagem já vai prontinha no WhatsApp.</p>
     <div class="ocasioes" id="ocasioes"></div>
@@ -244,7 +269,7 @@ footer{background:var(--marrom);color:var(--creme);padding:80px 24px 48px}
 <!-- HORÁRIOS + MAPA -->
 <section class="horarios" id="horarios">
   <div class="horarios-inner">
-    <div class="horarios-col">
+    <div class="horarios-col" data-reveal>
       <h2>Horários</h2>
       <div class="horarios-lista">
         <div class="horarios-linha"><span class="dia">Terça a Sábado</span><span>10h às 18h30</span></div>
@@ -253,7 +278,7 @@ footer{background:var(--marrom);color:var(--creme);padding:80px 24px 48px}
       </div>
       <p class="endereco">📍 R. Altamiro Barcelos Dutra, 1334 · Barra da Lagoa · Florianópolis, SC</p>
     </div>
-    <div class="mapa-col">
+    <div class="mapa-col" data-reveal>
       <h2>Onde estamos</h2>
       <div class="mapa">
         <iframe src="https://www.google.com/maps?q=R.+Altamiro+Barcelos+Dutra,+1334+-+Barra+da+Lagoa,+Florian%C3%B3polis+-+SC,+88061-308&output=embed" loading="lazy" title="Mapa — Barra da Lagoa, Florianópolis"></iframe>
@@ -264,7 +289,7 @@ footer{background:var(--marrom);color:var(--creme);padding:80px 24px 48px}
 
 <!-- RODAPÉ -->
 <footer>
-  <div class="footer-inner">
+  <div class="footer-inner" data-reveal>
     <img src="assets/logo.webp" alt="Doceria Dalpizzol" loading="lazy">
     <div class="footer-links">
       <a href="#" id="zapFooter" target="_blank" rel="noopener">WhatsApp · 48 99133-8766</a>
@@ -287,6 +312,7 @@ footer{background:var(--marrom);color:var(--creme);padding:80px 24px 48px}
     <span class="tag" id="modalTag"></span>
     <h3 id="modalNome"></h3>
     <p id="modalDesc"></p>
+    <span class="doce-preco" id="modalPreco" style="font-size:17px"></span>
     <a href="#" class="btn" id="modalZap" target="_blank" rel="noopener">Quero esse · WhatsApp</a>
   </div>
   <button class="modal-fechar" id="modalFechar" aria-label="Fechar">✕</button>
@@ -297,18 +323,20 @@ footer{background:var(--marrom);color:var(--creme);padding:80px 24px 48px}
 const ZAP = '5548991338766';
 const zap = msg => 'https://wa.me/' + ZAP + '?text=' + encodeURIComponent(msg);
 
+// preços abaixo são fictícios ◀ TROCAR pelos valores reais da Doceria Dalpizzol antes de publicar
 const DOCES = [
-  { nome: 'Cookies recheados', tag: 'Cookies', img: 'assets/cookies.webp', desc: 'Casquinha dourada por fora, macio por dentro — tem de chocolate, duplo chocolate e recheado que derrete na mordida.' },
-  { nome: 'Bombom na taça', tag: 'Taças', img: 'assets/bombom-taca.webp', desc: 'Camadas de brigadeiro, creme de ninho e morangos fresquinhos. É o nosso queridinho pra dividir (ou não).' },
-  { nome: 'Bolo vulcão', tag: 'Bolos', img: 'assets/bolo-vulcao.webp', desc: 'Massa fofinha coberta com aquela calda cremosa que escorre pelas bordas. Sabor de tarde na casa da vó.' },
-  { nome: 'Bento cake + docinhos', tag: 'Sob encomenda', img: 'assets/bento-cake.webp', desc: 'Bolinho personalizado com a mensagem que você quiser, acompanhado de brigadeiros. Perfeito pra surpreender.', encomenda: true },
-  { nome: 'Bombons de flor', tag: 'Bombons', img: 'assets/bombons-flor.webp', desc: 'Bombons em formato de flor com recheio cremoso — chocolate, ninho e morango. Pequenos detalhes que viram presente.' },
-  { nome: 'Pão de mel', tag: 'Clássicos', img: 'assets/pao-de-mel.webp', desc: 'Coberto com chocolate meio amargo e recheado de doce de leite. Um clássico feito do jeito certo.' },
-  { nome: 'Torta mousse de frutas vermelhas', tag: 'Tortas', img: 'assets/torta-frutas.webp', desc: 'Refrescante e delicada: mousse leve com o equilíbrio certo entre o doce e o azedinho das frutas.' },
-  { nome: 'Torta mousse de coco', tag: 'Tortas', img: 'assets/torta-coco.webp', desc: 'Leve e cremosa, com amêndoas e lascas de coco. Suavidade que desmancha na colher.' },
-  { nome: 'Caixa presente', tag: 'Sob encomenda', img: 'assets/caixa-presente.webp', desc: 'Bolo + brigadeiros numa caixa linda de dar. Montamos pra aniversários, datas especiais ou só porque sim.', encomenda: true },
-  { nome: 'Lata coração de brigadeiros', tag: 'Sob encomenda', img: 'assets/lata-coracao.webp', desc: 'Doze brigadeiros com coraçõezinhos numa lata que fica de lembrança. Declaração de amor em forma de doce.', encomenda: true },
+  { nome: 'Cookies recheados', tag: 'Cookies', img: 'assets/cookies.webp', desc: 'Casquinha dourada por fora, macio por dentro — tem de chocolate, duplo chocolate e recheado que derrete na mordida.', de: 14.90, por: 11.90 },
+  { nome: 'Bombom na taça', tag: 'Taças', img: 'assets/bombom-taca.webp', desc: 'Camadas de brigadeiro, creme de ninho e morangos fresquinhos. É o nosso queridinho pra dividir (ou não).', de: 22.00, por: 18.50 },
+  { nome: 'Bolo vulcão', tag: 'Bolos', img: 'assets/bolo-vulcao.webp', desc: 'Massa fofinha coberta com aquela calda cremosa que escorre pelas bordas. Sabor de tarde na casa da vó.', de: 68.00, por: 58.00 },
+  { nome: 'Bento cake + docinhos', tag: 'Sob encomenda', img: 'assets/bento-cake.webp', desc: 'Bolinho personalizado com a mensagem que você quiser, acompanhado de brigadeiros. Perfeito pra surpreender.', encomenda: true, de: 145.00, por: 129.00 },
+  { nome: 'Bombons de flor', tag: 'Bombons', img: 'assets/bombons-flor.webp', desc: 'Bombons em formato de flor com recheio cremoso — chocolate, ninho e morango. Pequenos detalhes que viram presente.', de: 6.50, por: 5.50 },
+  { nome: 'Pão de mel', tag: 'Clássicos', img: 'assets/pao-de-mel.webp', desc: 'Coberto com chocolate meio amargo e recheado de doce de leite. Um clássico feito do jeito certo.', de: 9.00, por: 7.50 },
+  { nome: 'Torta mousse de frutas vermelhas', tag: 'Tortas', img: 'assets/torta-frutas.webp', desc: 'Refrescante e delicada: mousse leve com o equilíbrio certo entre o doce e o azedinho das frutas.', de: 78.00, por: 65.00 },
+  { nome: 'Torta mousse de coco', tag: 'Tortas', img: 'assets/torta-coco.webp', desc: 'Leve e cremosa, com amêndoas e lascas de coco. Suavidade que desmancha na colher.', de: 78.00, por: 65.00 },
+  { nome: 'Caixa presente', tag: 'Sob encomenda', img: 'assets/caixa-presente.webp', desc: 'Bolo + brigadeiros numa caixa linda de dar. Montamos pra aniversários, datas especiais ou só porque sim.', encomenda: true, de: 95.00, por: 82.00 },
+  { nome: 'Lata coração de brigadeiros', tag: 'Sob encomenda', img: 'assets/lata-coracao.webp', desc: 'Doze brigadeiros com coraçõezinhos numa lata que fica de lembrança. Declaração de amor em forma de doce.', encomenda: true, de: 58.00, por: 49.00 },
 ];
+const brl = n => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 const msgDoce = d => 'Oi! Vi o site e fiquei com vontade do(a) ' + d.nome + ' 🤎 ' + (d.encomenda ? 'Como funciona a encomenda?' : 'Tem disponível?');
 
@@ -323,7 +351,8 @@ const wrap = document.getElementById('esteiraWrap');
   fig.tabIndex = 0;
   fig.innerHTML =
     '<div class="doce-foto"><img src="' + d.img + '" alt="' + d.nome + '"' + (i > 3 ? ' loading="lazy"' : '') + '></div>' +
-    '<figcaption><span class="doce-nome">' + d.nome + '</span><span class="doce-tag">' + d.tag + '</span></figcaption>';
+    '<figcaption><span class="doce-nome">' + d.nome + '</span><span class="doce-tag">' + d.tag + '</span>' +
+    '<span class="doce-preco"><span class="de">' + brl(d.de) + '</span><span class="por">' + brl(d.por) + '</span></span></figcaption>';
   fig.addEventListener('click', () => abrirModal(d));
   fig.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrirModal(d); } });
   esteira.appendChild(fig);
@@ -369,6 +398,7 @@ function abrirModal(d) {
   document.getElementById('modalImg').alt = d.nome;
   document.getElementById('modalTag').textContent = d.tag;
   document.getElementById('modalNome').textContent = d.nome;
+  document.getElementById('modalPreco').innerHTML = '<span class="de">' + brl(d.de) + '</span><span class="por">' + brl(d.por) + '</span>';
   document.getElementById('modalDesc').textContent = d.desc;
   document.getElementById('modalZap').href = zap(msgDoce(d));
   modal.hidden = false; modalVeu.hidden = false;
@@ -413,6 +443,30 @@ OCASIOES.forEach(nome => {
   ocasioesEl.appendChild(b);
 });
 atualizarEncomenda();
+
+// ── PROFUNDIDADE: parallax do hero + reveal no scroll ──
+const reduzMovimento = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const heroMedia = document.getElementById('heroMedia');
+if (heroMedia && !reduzMovimento) {
+  let alvo = 0, atual = 0;
+  const atualizarAlvo = () => { alvo = window.scrollY * 0.25; };
+  window.addEventListener('scroll', atualizarAlvo, { passive: true });
+  (function parallaxLoop() {
+    atual += (alvo - atual) * 0.08; // suaviza o movimento (lag intencional)
+    heroMedia.style.transform = 'translate3d(0,' + atual + 'px,0)';
+    requestAnimationFrame(parallaxLoop);
+  })();
+}
+
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('em-vista');
+      observer.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.15, rootMargin: '0px 0px -60px 0px' });
+document.querySelectorAll('[data-reveal]').forEach(el => observer.observe(el));
 
 // ── LINKS DIRETOS ──
 const zapDireto = zap('Oi! Vim pelo site da doceria 🤎');
